@@ -1,21 +1,31 @@
-from flask import Flask, jsonify, request
 import logging.config
+
+from api.product import db, Product
+from flask import Flask, jsonify, request
 from sqlalchemy import exc
-from db import db
-from Product import Product
 
 # Configure the logging package from the logging ini file
-logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
+# logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
 
 # Get a logger for our module
 log = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:password@db/products'
+
+DB_USER = 'testuser'
+DB_PASSWORD = 'testpwd'
+DB_HOST = 'localhost'
+DB_PORT = '3306'
+DB_NAME = 'db'
+DB_URL = f'mysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DB_URL
+
 db.init_app(app)
+with app.app_context():
+    db.create_all()
 
 
-# curl -v http://localhost:5000/products
 @app.route('/products')
 def get_products():
     log.debug('GET /products')
@@ -27,9 +37,8 @@ def get_products():
         return 'An exception occurred while retrieving all products', 500
 
 
-# curl -v http://localhost:5000/product/1
 @app.route('/product/<int:id>')
-def get_product(id):
+def get_product(id: int):
     log.debug(f'GET /product/{id}')
 
     try:
@@ -43,11 +52,8 @@ def get_product(id):
         return f'An exception occurred while retrieving product {id}', 500
 
 
-
-# curl --header "Content-Type: application/json" --request POST --data '{"name": "Product 3"}' -v http://localhost:5000/product
 @app.route('/product', methods=['POST'])
 def post_product():
-
     # Retrieve the product from the request body
     request_product = request.json
     log.debug(f'POST /products with product: {request_product}')
@@ -66,9 +72,9 @@ def post_product():
         return f'An exception occurred while creating product with name: {product.name}', 500
 
 
-# curl --header "Content-Type: application/json" --request PUT --data '{"name": "Updated Product 2"}' -v http://localhost:5000/product/2
+# curl --header "Content-Type: application/json" --request PUT --data '{"name": "Updated Product 2"}' -v
 @app.route('/product/<int:id>', methods=['PUT'])
-def put_product(id):
+def put_product(id: int):
     log.debug(f'PUT /product/{id}')
     try:
         existing_product = Product.find_by_id(id)
@@ -90,10 +96,8 @@ def put_product(id):
         return f'An exception occurred while updating product with name: {updated_product.name}', 500
 
 
-
-# curl --request DELETE -v http://localhost:5000/product/2
 @app.route('/product/<int:id>', methods=['DELETE'])
-def delete_product(id):
+def delete_product(id: int):
     log.debug(f'DELETE /product/{id}')
     try:
         existing_product = Product.find_by_id(id)

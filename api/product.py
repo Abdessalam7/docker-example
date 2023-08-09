@@ -1,7 +1,10 @@
 import logging
-from db import db
+
+from flask_sqlalchemy import SQLAlchemy
 
 log = logging.getLogger(__name__)
+
+db = SQLAlchemy()
 
 
 class Product(db.Model):
